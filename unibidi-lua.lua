@@ -921,7 +921,7 @@ local function insert_dir_points(list,size)
                 runlast = i
             else
                 if started and runlast then
-                    table.insert(list[runlast].enddirs, 1, dircode)
+                    table.insert(list[runlast].enddirs, dircode)
                     started = false
                     runstart = nil
                     runlast = nil
@@ -931,7 +931,7 @@ local function insert_dir_points(list,size)
         
         -- Close at end if still open
         if started and runlast then
-            table.insert(list[runlast].enddirs, 1, dircode)
+            table.insert(list[runlast].enddirs, dircode)
         end
     end
 end
