@@ -50,6 +50,7 @@ This file is a derivative of typo-duc.lua from the ConTeXt project.
 ]]--
 
 local concat = table.concat
+local table_insert = table.insert
 local utfchar = utf.char
 local setmetatable = setmetatable
 local formatters = string.formatters
@@ -914,14 +915,14 @@ local function insert_dir_points(list,size)
             local entry = list[i]
             if entry.level >= level then
                 if not started then
-                    table.insert(entry.begindirs, dircode)
+                    table_insert(entry.begindirs, dircode)
                     runstart = i
                     started = true
                 end
                 runlast = i
             else
                 if started and runlast then
-                    table.insert(list[runlast].enddirs, dircode)
+                    table_insert(list[runlast].enddirs, dircode)
                     started = false
                     runstart = nil
                     runlast = nil
@@ -931,7 +932,7 @@ local function insert_dir_points(list,size)
         
         -- Close at end if still open
         if started and runlast then
-            table.insert(list[runlast].enddirs, dircode)
+            table_insert(list[runlast].enddirs, dircode)
         end
     end
 end
@@ -943,14 +944,14 @@ local function verify_balance(list, size)
         local parts = {}
         if entry.begindirs and #entry.begindirs > 0 then
             for _, dir in ipairs(entry.begindirs) do
-                table.insert(parts, string.format("BEGIN(%s)", dir == 0 and "LTR" or "RTL"))
+                table_insert(parts, string.format("BEGIN(%s)", dir == 0 and "LTR" or "RTL"))
             end
         end
-        table.insert(parts, string.format("level=%d char=%s", entry.level, 
+        table_insert(parts, string.format("level=%d char=%s", entry.level, 
             entry.char == 0xFFFC and "OBJ" or (entry.char and string.format("U+%04X", entry.char) or "?")))
         if entry.enddirs and #entry.enddirs > 0 then
             for _, dir in ipairs(entry.enddirs) do
-                table.insert(parts, string.format("END(%s)", dir == 0 and "LTR" or "RTL"))
+                table_insert(parts, string.format("END(%s)", dir == 0 and "LTR" or "RTL"))
             end
         end
         texio.write_nl('log', string.format("%3d: %s", i, table.concat(parts, " | ")))
@@ -962,7 +963,7 @@ local function verify_balance(list, size)
         local entry = list[i]
         if entry.begindirs then
             for _, dir in ipairs(entry.begindirs) do
-                table.insert(stack, {i=i, dir=dir})
+                table_insert(stack, {i=i, dir=dir})
                 texio.write_nl('log', string.format("%3d: PUSH dir=%d (stack depth now %d)", i, dir, #stack))
             end
         end
@@ -1201,7 +1202,7 @@ local function interface()
     local tok = get_next()
     if tok.tok ~= relax.tok then
         tex.error("unibidi-lua: wrong syntax in \\unibidilua",
-                {"There's a '" .. (tok.csname or uni_char(tok.mode)) .. "' out of place." })
+                {"There's a '" .. (tok.csname or utfchar(tok.mode)) .. "' out of place." })
         put_next(tok)
     end
   
