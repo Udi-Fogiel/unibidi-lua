@@ -890,67 +890,48 @@ end
 local stack = { }
 
 local function insert_dir_points(list,size)
-    -- L2, but no actual reversion is done, we simply annotate where
-    -- begindir/endddir node will be inserted.
+    -- Initialize direction change lists
+    for i=1,size do
+        list[i].begindirs = {}
+        list[i].enddirs = {}
+    end
+    
     local maxlevel = 0
-    local toggle   = true
     for i=1,size do
         local level = list[i].level
         if level > maxlevel then
             maxlevel = level
         end
     end
-    for level=0,maxlevel do
-        local started  -- = false
-        local begindir -- = nil
-        local enddir   -- = nil
-        local prev     -- = nil
-        if toggle then
-            begindir = lefttoright_code
-            enddir   = lefttoright_code
-            toggle   = false
-        else
-            begindir = righttoleft_code
-            enddir   = righttoleft_code
-            toggle   = true
-        end
+    
+    for level=1,maxlevel do
+        local started = false
+        local runstart = nil
+        local runlast = nil
+        local dircode = (level % 2 == 1) and righttoleft_code or lefttoright_code
+        
         for i=1,size do
             local entry = list[i]
             if entry.level >= level then
                 if not started then
-                    entry.begindir = begindir
-                    started        = true
+                    table.insert(entry.begindirs, dircode)
+                    runstart = i
+                    started = true
                 end
+                runlast = i
             else
-                if started then
-                    prev.enddir = enddir
-                    started     = false
+                if started and runlast then
+                    table.insert(list[runlast].enddirs, 1, dircode)
+                    started = false
+                    runstart = nil
+                    runlast = nil
                 end
             end
-            prev = entry
         end
-    end
-    -- make sure to close the run at end of line
-    local last = list[size]
-    if not last.enddir then
-        local n = 0
-        for i=1,size do
-            local entry = list[i]
-            local e = entry.enddir
-            local b = entry.begindir
-            if e then
-                n = n - 1
-            end
-            if b then
-                n = n + 1
-                stack[n] = b
-            end
-        end
-        if n > 0 then
-            if trace_list and n > 1 then
-                report_directions("unbalanced list")
-            end
-            last.enddir = stack[n]
+        
+        -- Close at end if still open
+        if started and runlast then
+            table.insert(list[runlast].enddirs, 1, dircode)
         end
     end
 end
@@ -972,14 +953,30 @@ local function apply_to_list(list,size,head,pardir)
         end
         local id       = getid(current)
         local entry    = list[index]
-        local begindir = entry.begindir
-        local enddir   = entry.enddir
+        
         local p = properties[current]
         if p then
             p.directions = true
         else
             properties[current] = { directions = true }
         end
+        
+        -- Handle begindirs
+        if entry.begindirs and #entry.begindirs > 0 then
+            if id == par_code and startofpar(current) then
+                -- par should always be the 1st node, insert begindirs AFTER it
+                for _, begindir in ipairs(entry.begindirs) do
+                    head, current = insertnodeafter(head,current,new_direction(begindir))
+                end
+                entry.begindirs = {} -- Clear so we don't insert again
+            else
+                -- Insert begindirs BEFORE current node
+                for _, begindir in ipairs(entry.begindirs) do
+                    head = insertnodebefore(head,current,new_direction(begindir))
+                end
+            end
+        end
+        
         if id == glyph_code and entry.mirror then
             local curr_font = getfont(current)
             if curr_font > 0 and font.fonts[curr_font].properties then
@@ -1000,37 +997,29 @@ local function apply_to_list(list,size,head,pardir)
                         report_directions("%2i : %C : %s -> %s",level,char,original,direction)
                     end
                 end
-                setcolor(current,direction,false,mirror)
+                -- setcolor(current,direction,false,mirror)  -- if you have this function
             end
         elseif id == hlist_code or id == vlist_code then
-            setdirection(current,pardir) -- is this really needed?
+            setdirection(current,pardir)
         elseif id == glue_code then
-            -- Maybe I should also fix dua and dub but on the other hand ... why?
-            if enddir and getsubtype(current) == parfillskip_code then
-                -- insert the last enddir before \parfillskip glue
+            if entry.enddirs and #entry.enddirs > 0 and getsubtype(current) == parfillskip_code then
+                -- insert the enddirs before \parfillskip glue
                 local c = current
                 local p = getprev(c)
                 if p and getid(p) == glue_code and getsubtype(p) == parfillleftskip_code then
                     c = p
                     p = getprev(c)
                 end
-                if p and getid(p) == penalty_code then -- linepenalty
+                if p and getid(p) == penalty_code then
                     c = p
                 end
-                -- there is always a par nodes so head will stay
-                head = insertnodebefore(head,c,new_direction(enddir,true))
-                enddir = false
-            end
-        elseif begindir then
-            if id == par_code and startofpar(current) then
-                -- par should always be the 1st node
-                head, current = insertnodeafter(head,current,new_direction(begindir))
-                begindir = nil
+                for _, enddir in ipairs(entry.enddirs) do
+                    head = insertnodebefore(head,c,new_direction(enddir,true))
+                end
+                entry.enddirs = {} -- Clear so we don't insert again below
             end
         end
-        if begindir then
-            head = insertnodebefore(head,current,new_direction(begindir))
-        end
+        
         local skip = entry.skip
         if skip and skip > 0 then
             for i=1,skip do
@@ -1043,9 +1032,14 @@ local function apply_to_list(list,size,head,pardir)
                 end
             end
         end
-        if enddir then
-            head, current = insertnodeafter(head,current,new_direction(enddir,true))
+        
+        -- Insert all enddirs AFTER current node (in reverse order for proper nesting)
+        if entry.enddirs and #entry.enddirs > 0 then
+            for i = #entry.enddirs, 1, -1 do
+                head, current = insertnodeafter(head,current,new_direction(entry.enddirs[i],true))
+            end
         end
+        
         if not entry.remove then
             current = getnext(current)
         elseif remove_controls then
@@ -1061,6 +1055,7 @@ local function apply_to_list(list,size,head,pardir)
     end
     return head
 end
+
 
 -- If needed we can optimize for only_one. There is no need to do anything
 -- when it's not a glyph. Otherwise we only need to check mirror and apply
