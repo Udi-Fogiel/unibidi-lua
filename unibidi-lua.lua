@@ -1122,9 +1122,6 @@ end
 
 local analyze_fences = false
 local function process(head,where,direction)
-    if where == "fin_row" then return true end
-    if where == "align_set" then head = node.first_glyph(head) end
-    if not head then return true end
     head = todirect(head)
     local list, size = build_list(head,where)
     local baselevel, dirfound = get_baselevel(head,list,size,direction)
