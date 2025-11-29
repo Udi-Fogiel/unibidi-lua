@@ -167,7 +167,6 @@ local maximum_stack        = 0xFF
 local a_directions         = luatexbase.new_attribute('directions')
 
 local remove_controls      = true
------ analyze_fences       = true
 
 local report_directions    = function(...) end
 
@@ -887,8 +886,6 @@ local function resolve_levels(list,size,baselevel,analyze_fences)
         end
     end
 end
-
-local stack = { }
 
 local function insert_dir_points(list,size)
     -- Initialize direction change lists
