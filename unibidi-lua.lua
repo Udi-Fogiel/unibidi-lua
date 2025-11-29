@@ -378,7 +378,7 @@ local function build_list(head,where)
             local skip = 0
             local last = id
             current    = getnext(current)
-            while n do
+            while current do
                 local id = getid(current)
                 if id ~= glyph_code and id ~= glue_code and id ~= dir_code then
                     skip    = skip + 1
@@ -687,14 +687,14 @@ local function resolve_weak(list,size,start,limit,orderbefore,orderafter)
         if list[i].direction == "et" then
             local runstart = i
             local runlimit = runstart
-            for i=runstart,limit do
-                if list[i].direction == "et" then
-                    runlimit = i
+            for j=runstart,limit do
+                if list[j].direction == "et" then
+                    runlimit = j
                 else
                     break
                 end
             end
-            local rundirection = runstart == start and sor or list[runstart-1].direction
+            local rundirection = runstart == start and orderbefore or list[runstart-1].direction
             if rundirection ~= "en" then
                 rundirection = runlimit == limit and orderafter or list[runlimit+1].direction
             end
@@ -936,6 +936,63 @@ local function insert_dir_points(list,size)
     end
 end
 
+local function verify_balance(list, size)
+    texio.write_nl('log', "\n=== Direction node structure ===")
+    for i=1,size do
+        local entry = list[i]
+        local parts = {}
+        if entry.begindirs and #entry.begindirs > 0 then
+            for _, dir in ipairs(entry.begindirs) do
+                table.insert(parts, string.format("BEGIN(%s)", dir == 0 and "LTR" or "RTL"))
+            end
+        end
+        table.insert(parts, string.format("level=%d char=%s", entry.level, 
+            entry.char == 0xFFFC and "OBJ" or (entry.char and string.format("U+%04X", entry.char) or "?")))
+        if entry.enddirs and #entry.enddirs > 0 then
+            for _, dir in ipairs(entry.enddirs) do
+                table.insert(parts, string.format("END(%s)", dir == 0 and "LTR" or "RTL"))
+            end
+        end
+        texio.write_nl('log', string.format("%3d: %s", i, table.concat(parts, " | ")))
+    end
+    
+    texio.write_nl('log', "\n=== Checking balance ===")
+    local stack = {}
+    for i=1,size do
+        local entry = list[i]
+        if entry.begindirs then
+            for _, dir in ipairs(entry.begindirs) do
+                table.insert(stack, {i=i, dir=dir})
+                texio.write_nl('log', string.format("%3d: PUSH dir=%d (stack depth now %d)", i, dir, #stack))
+            end
+        end
+        if entry.enddirs then
+            -- Process enddirs in reverse since they're stored in reverse nesting order
+            for j = #entry.enddirs, 1, -1 do
+                local dir = entry.enddirs[j]
+                if #stack == 0 then
+                    texio.write_nl('log', string.format("ERROR: enddir at %d with no matching begindir", i))
+                    return false
+                end
+                local top = table.remove(stack)
+                texio.write_nl('log', string.format("%3d: POP  dir=%d (was pushed at %d, stack depth now %d)", 
+                    i, dir, top.i, #stack))
+                if top.dir ~= dir then
+                    texio.write_nl('log', string.format("ERROR: mismatched dirs at %d (begin=%d): expected %d, got %d", 
+                        i, top.i, top.dir, dir))
+                    return false
+                end
+            end
+        end
+    end
+    if #stack > 0 then
+        texio.write_nl('log', string.format("ERROR: unclosed begindirs: %d remaining", #stack))
+        return false
+    end
+    texio.write_nl('log', "Balance check: OK")
+    return true
+end
+
 -- We flag nodes that can be skipped when we see them again but because whatever
 -- mechanism can injetc dir nodes that then are not flagged, we don't flag dir
 -- nodes that we inject here.
@@ -1078,6 +1135,7 @@ local function process(head,where,direction)
     resolve_explicit(list,size,baselevel)
     resolve_levels(list,size,baselevel,analyze_fences)
     insert_dir_points(list,size)
+--    verify_balance(list,size)
     if trace_details then
         report_directions("after  : %s",show_list(list,size,"direction"))
         report_directions("result : %s",show_done(list,size))
