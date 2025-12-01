@@ -1,5 +1,5 @@
 % Optional comments
-\_def \_unibidilua_version {0.1, 2025-01-19}
+\_def \_unibidilua_version {0.2, 2025-12-01}
 \_codedecl \unibidilua {Unicode Bidi Algorithm for OpTeX <\_unibidilua_version>}
 
 \_initunifonts

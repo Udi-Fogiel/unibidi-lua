@@ -55,7 +55,7 @@ function optex_doc()
 end
 specialtypesetting[module .. ".opm"] = {func = optex_doc}
 
-tagfiles = sourcefiles
+tagfiles = {"*.opm", "*.sty", "*.lua", module .. ".tex", "*.md"}
 function update_tag(file,content,tagname,tagdate)
   if string.match(file, "%.opm$") then
     return string.gsub(content,

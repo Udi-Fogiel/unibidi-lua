@@ -1,5 +1,5 @@
 --[[
-    version   = 0.1, 2025-01-19
+    version   = 0.2, 2025-12-01
     author    = Hans Hagen, PRAGMA-ADE, Hasselt NL, Udi Fogiel
     copyright = PRAGMA ADE / ConTeXt Development Team
     license   = GPL v2.0
@@ -1138,71 +1138,42 @@ local function process(head,where,direction)
     return tonode(apply_to_list(list,size,head,baselevel))
 end
 
-local put_next = token.put_next
-local get_next = token.get_next
-local scan_keyword = token.scan_keyword
-local scan_toks = token.scan_toks
-
-local relax
-do
-  local prefix = 'u@a^x&9_'
-  while token.is_defined(prefix .. 'let') or token.is_defined(prefix .. 'relax') do
-    prefix = prefix .. 'u@a^x&9_'
-  end
-  local undef = token.create(prefix .. 'relax')
-  tex.enableprimitives(prefix,{'relax', 'let'})
-  local function frozentok(name)
-      local tok = token.create(prefix .. name)
-      return token.new(tok.mode, tok.command)
-  end
-  relax = frozentok'relax'
-  let = frozentok'let'
-  tex.runtoks(function()
-      for _,csname in ipairs({'relax', 'let'}) do
-          put_next(let, token.create(prefix .. csname), undef)
-      end
-  end)
-end
+local keyval = require('luakeyval')
+local scan_choice = keyval.choices
+local scan_bool = keyval.bool
+local process_keys = keyval.process
+local messages = {
+    error1 = "unibidi-lua: wrong syntax in \\unibidi-lua",
+    value_forbidden = "unibidi-lua: the %s key does not accept a value",
+    value_rquired = "unibidi-lua: the %s key require a value",
+}
+local keys = {
+    enable = { default = true },
+    disable = { default = true },
+    fences = { scanner = scan_bool, default = true },
+}
 
 local enabled = true
 local function interface()
     local saved_endlinechar = tex.endlinechar
     tex.endlinechar = 32
-    local toks = scan_toks()
+    local vals = process_keys(keys,messages)
     tex.endlinechar = saved_endlinechar
-    put_next(relax)
-    put_next(toks)
-
-    while true do
-        if scan_keyword('enable') then
-            if not enabled then
-                enabled = true
-                luatexbase.add_to_callback("pre_shaping_filter", process, "unibidi-lua.process")
-            end
-        elseif scan_keyword('disable') then
-            if enabled then
-                enabled = false
-                luatexbase.remove_from_callback("pre_shaping_filter", "unibidi-lua.process")
-            end
-        elseif scan_keyword('fences') then
-            scan_keyword('=')
-            if scan_keyword('true') then
-                analyze_fences = true
-            elseif scan_keyword('false') then
-                analyze_fences = false
-            end
-        else
-            break
+    if vals.enable then
+        if not enabled then
+            enabled = true
+            luatexbase.add_to_callback("pre_shaping_filter", process, "unibidi-lua")
         end
     end
-  
-    local tok = get_next()
-    if tok.tok ~= relax.tok then
-        tex.error("unibidi-lua: wrong syntax in \\unibidilua",
-                {"There's a '" .. (tok.csname or utfchar(tok.mode)) .. "' out of place." })
-        put_next(tok)
+    if vals.disable then
+        if enabled then
+            enabled = false
+            luatexbase.remove_from_callback("pre_shaping_filter", "unibidi-lua")
+        end
     end
-  
+    if vals.fences ~= nil then
+        analyze_fences = vals.fences
+    end
 end
 
 do

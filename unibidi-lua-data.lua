@@ -1,5 +1,5 @@
 --[[
-    version   = 0.1, 2025-01-19
+    version   = 0.2, 2025-12-01
     author    = Hans Hagen, PRAGMA-ADE, Hasselt NL, Udi Fogiel
     copyright = PRAGMA ADE / ConTeXt Development Team
     license   = GPL v2.0

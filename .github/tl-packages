@@ -3,6 +3,7 @@ l3build
 # format generation
 latex-bin
 luatex
-#
 optex
-culmus
+# fonts
+culmus # Hebrew
+amiri # Arabic

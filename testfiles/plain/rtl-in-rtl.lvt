@@ -1,0 +1,6 @@
+\input{regression-test.tex}
+\input{unibidi-lua}
+\font\foo{name:Amiri:script=arabic,mode=harf;}\foo
+\pardirection=1\textdirection=1
+بى 19 az 29 تى 19 29 39 ثى 49-59 سى 69/79 شى 19.29 صى 39,49
+\bye

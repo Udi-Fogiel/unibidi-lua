@@ -1,5 +1,5 @@
 # The unibidi-lua Package
-unibidi-lua version 0.1, 2025-01-19
+unibidi-lua version 0.2, 2025-12-01
 
 ## Description
 The unibidi-lua LuaTeX package is a port of the unicode bidi algorithm
