@@ -30,7 +30,7 @@ todo (cf html):
  todo: no need for a max check
  todo: collapse bound similar ranges (not ok yet)
  todo: combine some sweeps
- todo: removing is not needed when we inject at the same spot (only chnage the dir property)
+ todo: removing is not needed when we inject at the same spot (only change the dir property)
  todo: isolated runs (isolating runs are similar to bidi=local in the basic analyzer)
 
  todo: check unicode addenda (from the draft):
@@ -50,7 +50,7 @@ This file is a derivative of typo-duc.lua from the ConTeXt project.
 ]]--
 
 local concat = table.concat
-local table_insert = table.insert
+local insert = table.insert
 local utfchar = utf.char
 local setmetatable = setmetatable
 local formatters = string.formatters
@@ -888,12 +888,8 @@ local function resolve_levels(list,size,baselevel,analyze_fences)
 end
 
 local function insert_dir_points(list,size)
-    -- Initialize direction change lists
-    for i=1,size do
-        list[i].begindirs = {}
-        list[i].enddirs = {}
-    end
-    
+    -- L2, but no actual reversion is done, we simply annotate where
+    -- begindir/endddir node will be inserted.
     local maxlevel = 0
     for i=1,size do
         local level = list[i].level
@@ -901,35 +897,52 @@ local function insert_dir_points(list,size)
             maxlevel = level
         end
     end
-    
+
     for level=1,maxlevel do
-        local started = false
+        local started  = false
         local runstart = nil
-        local runlast = nil
-        local dircode = (level % 2 == 1) and righttoleft_code or lefttoright_code
-        
+        local runlast  = nil
+        local dircode  = (level % 2 == 1) and righttoleft_code or lefttoright_code
+
         for i=1,size do
             local entry = list[i]
             if entry.level >= level then
                 if not started then
-                    table_insert(entry.begindirs, dircode)
+                    local b = entry.begindirs
+                    if b then
+                        b[#b+1] = dircode
+                    else
+                        entry.begindirs = { dircode }
+                    end
                     runstart = i
                     started = true
                 end
                 runlast = i
             else
                 if started and runlast then
-                    table_insert(list[runlast].enddirs, dircode)
+                    local l = list[runlast]
+                    local e = l.enddirs
+                    if e then
+                        e[#e+1] = dircode
+                    else
+                        l.enddirs = { dircode }
+                    end
                     started = false
                     runstart = nil
                     runlast = nil
                 end
             end
         end
-        
+
         -- Close at end if still open
         if started and runlast then
-            table_insert(list[runlast].enddirs, dircode)
+            local l = list[runlast]
+            local e = l.enddirs
+            if e then
+                e[#e+1] = dircode
+            else
+                l.enddirs = { dircode }
+            end
         end
     end
 end
@@ -941,14 +954,14 @@ local function verify_balance(list, size)
         local parts = {}
         if entry.begindirs and #entry.begindirs > 0 then
             for _, dir in ipairs(entry.begindirs) do
-                table_insert(parts, string.format("BEGIN(%s)", dir == 0 and "LTR" or "RTL"))
+                insert(parts, string.format("BEGIN(%s)", dir == 0 and "LTR" or "RTL"))
             end
         end
-        table_insert(parts, string.format("level=%d char=%s", entry.level, 
+        insert(parts, string.format("level=%d char=%s", entry.level, 
             entry.char == 0xFFFC and "OBJ" or (entry.char and string.format("U+%04X", entry.char) or "?")))
         if entry.enddirs and #entry.enddirs > 0 then
             for _, dir in ipairs(entry.enddirs) do
-                table_insert(parts, string.format("END(%s)", dir == 0 and "LTR" or "RTL"))
+                insert(parts, string.format("END(%s)", dir == 0 and "LTR" or "RTL"))
             end
         end
         texio.write_nl('log', string.format("%3d: %s", i, table.concat(parts, " | ")))
@@ -960,7 +973,7 @@ local function verify_balance(list, size)
         local entry = list[i]
         if entry.begindirs then
             for _, dir in ipairs(entry.begindirs) do
-                table_insert(stack, {i=i, dir=dir})
+                insert(stack, {i=i, dir=dir})
                 texio.write_nl('log', string.format("%3d: PUSH dir=%d (stack depth now %d)", i, dir, #stack))
             end
         end
@@ -992,7 +1005,7 @@ local function verify_balance(list, size)
 end
 
 -- We flag nodes that can be skipped when we see them again but because whatever
--- mechanism can injetc dir nodes that then are not flagged, we don't flag dir
+-- mechanism can inject dir nodes that then are not flagged, we don't flag dir
 -- nodes that we inject here.
 
 local function apply_to_list(list,size,head,pardir)
@@ -1008,37 +1021,35 @@ local function apply_to_list(list,size,head,pardir)
         end
         local id       = getid(current)
         local entry    = list[index]
-        
+
         local p = properties[current]
         if p then
             p.directions = true
         else
             properties[current] = { directions = true }
         end
-        
+
         -- Handle begindirs
-        if entry.begindirs and #entry.begindirs > 0 then
+        local b = entry.begindirs
+        if b then
             if id == par_code and startofpar(current) then
                 -- par should always be the 1st node, insert begindirs AFTER it
-                for _, begindir in ipairs(entry.begindirs) do
-                    head, current = insertnodeafter(head,current,new_direction(begindir))
+                for i=1,#b do
+                    head, current = insertnodeafter(head,current,new_direction(b[i]))
                 end
-                entry.begindirs = {} -- Clear so we don't insert again
             else
                 -- Insert begindirs BEFORE current node
-                for _, begindir in ipairs(entry.begindirs) do
-                    head = insertnodebefore(head,current,new_direction(begindir))
+                for i=1,#b do
+                    head = insertnodebefore(head,current,new_direction(b[i]))
                 end
             end
+            entry.begindirs = nil
         end
-        
-        if id == glyph_code and entry.mirror then
-            local curr_font = getfont(current)
-            if curr_font > 0 and font.fonts[curr_font].properties then
-                local font_mode = font.fonts[curr_font].properties.mode
-                if font_mode ~= 'harf' and font_mode ~= 'plug' then
-                    setchar(current,entry.mirror)
-                end
+
+        if id == glyph_code then
+            local mirror = entry.mirror
+            if mirror then
+                setchar(current,mirror)
             end
             if trace_directions then
                 local direction = entry.direction
@@ -1052,29 +1063,32 @@ local function apply_to_list(list,size,head,pardir)
                         report_directions("%2i : %C : %s -> %s",level,char,original,direction)
                     end
                 end
-                -- setcolor(current,direction,false,mirror)  -- if you have this function
+                setcolor(current,direction,false,mirror)
             end
         elseif id == hlist_code or id == vlist_code then
-            setdirection(current,pardir)
+            setdirection(current,pardir) -- is this really needed?
         elseif id == glue_code then
-            if entry.enddirs and #entry.enddirs > 0 and getsubtype(current) == parfillskip_code then
-                -- insert the enddirs before \parfillskip glue
-                local c = current
-                local p = getprev(c)
-                if p and getid(p) == glue_code and getsubtype(p) == parfillleftskip_code then
-                    c = p
-                    p = getprev(c)
+            if getsubtype(current) == parfillskip_code then
+                local e = entry.enddirs
+                if e then
+                    -- insert the enddirs before \parfillskip glue
+                    local c = current
+                    local p = getprev(c)
+                    if p and getid(p) == glue_code and getsubtype(p) == parfillleftskip_code then
+                        c = p
+                        p = getprev(c)
+                    end
+                    if p and getid(p) == penalty_code then -- linepenalty
+                        c = p
+                    end
+                    for i=1,#e do
+                        head = insertnodebefore(head,c,new_direction(e[i],true))
+                    end
+                    entry.enddirs = nil
                 end
-                if p and getid(p) == penalty_code then
-                    c = p
-                end
-                for _, enddir in ipairs(entry.enddirs) do
-                    head = insertnodebefore(head,c,new_direction(enddir,true))
-                end
-                entry.enddirs = {} -- Clear so we don't insert again below
             end
         end
-        
+
         local skip = entry.skip
         if skip and skip > 0 then
             for i=1,skip do
@@ -1087,14 +1101,15 @@ local function apply_to_list(list,size,head,pardir)
                 end
             end
         end
-        
+
         -- Insert all enddirs AFTER current node (in reverse order for proper nesting)
-        if entry.enddirs and #entry.enddirs > 0 then
-            for i = #entry.enddirs, 1, -1 do
-                head, current = insertnodeafter(head,current,new_direction(entry.enddirs[i],true))
+        local e = entry.enddirs
+        if e then
+            for i = #e, 1, -1 do
+                head, current = insertnodeafter(head,current,new_direction(e[i],true))
             end
         end
-        
+
         if not entry.remove then
             current = getnext(current)
         elseif remove_controls then

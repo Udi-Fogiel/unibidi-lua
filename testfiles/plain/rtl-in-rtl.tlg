@@ -1,0 +1,91 @@
+This is a generated file for the l3build validation system.
+Don't change this file in any respect.
+> \box...=
+\hbox(8.22+3.58)x259.06017, direction TRT
+.\begindir TRT
+.\foo ب
+.\foo ى
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 1
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo a
+.\foo z
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\foo 2
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\foo ت
+.\foo ى
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 1
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 2
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 3
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\foo ث
+.\foo ى
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 4
+.\foo 9
+.\enddir TLT
+.\discretionary (penalty 50)
+..< \foo -
+..= \foo -
+.\begindir TLT
+.\foo 5
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\foo س
+.\foo ى
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 6
+.\foo 9
+.\foo /
+.\foo 7
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\foo ش
+.\foo ى
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 1
+.\foo 9
+.\foo .
+.\foo 2
+.\foo 9
+.\enddir TLT
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\foo ص
+.\foo ى
+.\glue(\spaceskip) 2.92 plus 1.46 minus 0.97333
+.\begindir TLT
+.\foo 3
+.\foo 9
+.\foo ,
+.\foo 4
+.\foo 9
+.\enddir TLT
+.\enddir TRT
+! OK.
+<to be read again> 
+                   \begingroup 
+l. ...\START\showbox0\END
