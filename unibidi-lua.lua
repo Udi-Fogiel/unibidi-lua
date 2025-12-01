@@ -1053,6 +1053,7 @@ local function apply_to_list(list,size,head,pardir)
                 if font_mode ~= 'harf' and font_mode ~= 'plug' then
                     setchar(current,entry.mirror)
                 end
+            end
             if trace_directions then
                 local direction = entry.direction
                 if trace_list then
