@@ -1046,11 +1046,13 @@ local function apply_to_list(list,size,head,pardir)
             entry.begindirs = nil
         end
 
-        if id == glyph_code then
-            local mirror = entry.mirror
-            if mirror then
-                setchar(current,mirror)
-            end
+        if id == glyph_code and entry.mirror then
+            local curr_font = getfont(current)
+            if curr_font > 0 and font.fonts[curr_font].properties then
+                local font_mode = font.fonts[curr_font].properties.mode
+                if font_mode ~= 'harf' and font_mode ~= 'plug' then
+                    setchar(current,entry.mirror)
+                end
             if trace_directions then
                 local direction = entry.direction
                 if trace_list then
@@ -1063,7 +1065,7 @@ local function apply_to_list(list,size,head,pardir)
                         report_directions("%2i : %C : %s -> %s",level,char,original,direction)
                     end
                 end
-                setcolor(current,direction,false,mirror)
+                -- setcolor(current,direction,false,mirror)
             end
         elseif id == hlist_code or id == vlist_code then
             setdirection(current,pardir) -- is this really needed?
