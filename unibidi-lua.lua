@@ -113,6 +113,7 @@ local getsubtype           = node.direct.getsubtype
 local getchar              = node.direct.getchar
 local getattr              = node.direct.get_attribute
 local getdirection         = node.direct.getdirection
+local hasglyph             = node.direct.has_glyph
 
 local setchar              = node.direct.setchar
 local setdirection         = node.direct.setdirection
@@ -1138,8 +1139,8 @@ end
 
 local analyze_fences = false
 local function process(head,where,direction)
-    if where == "fin_row" then return true end
     head = todirect(head)
+    if not hasglyph(head) then return true end
     local list, size = build_list(head,where)
     local baselevel, dirfound = get_baselevel(head,list,size,direction)
     if trace_details then
