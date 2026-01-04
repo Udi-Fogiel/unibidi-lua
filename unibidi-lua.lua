@@ -1137,12 +1137,17 @@ end
 -- have more than one node. Actually, we only enter this function when we
 -- do have a glyph!
 
+local enabled = true
+local custom_baselevel = false
+local custom_baselevel_func = get_baselevel
 local analyze_fences = false
+
 local function process(head,where,direction)
     head = todirect(head)
     if not hasglyph(head) then return true end
     local list, size = build_list(head,where)
-    local baselevel, dirfound = get_baselevel(head,list,size,direction)
+    local baselevel_func = custom_baselevel and custom_baselevel_func or get_baselevel
+    local baselevel, dirfound = baselevel_func(head,list,size,direction)
     if trace_details then
         report_directions("analyze: baselevel %a",baselevel == righttoleft_code and "r2l" or "l2r")
         report_directions("before : %s",show_list(list,size,"original"))
@@ -1162,6 +1167,7 @@ local keyval = require('luakeyval')
 local scan_choice = keyval.choices
 local scan_bool = keyval.bool
 local process_keys = keyval.process
+local scan_string = token.scan_string
 local messages = {
     error1 = "unibidi-lua: wrong syntax in \\unibidi-lua",
     value_forbidden = "unibidi-lua: the %s key does not accept a value",
@@ -1171,9 +1177,9 @@ local keys = {
     enable = { default = true },
     disable = { default = true },
     fences = { scanner = scan_bool, default = true },
+    baselevel = { scanner = scan_string },
 }
 
-local enabled = true
 local function interface()
     local saved_endlinechar = tex.endlinechar
     tex.endlinechar = 32
@@ -1193,6 +1199,20 @@ local function interface()
     end
     if vals.fences ~= nil then
         analyze_fences = vals.fences
+    end
+    if vals.baselevel then
+        if vals.baselevel == "false" then  
+            custom_baselevel = false
+        else            
+            local func, err = load("return " .. vals.baselevel)
+            if func then
+                custom_baselevel = true
+                custom_baselevel_func = func()
+            else
+                custom_baselevel = false
+                texio.write_nl('log', "unibidi-lua: error in baselevel: " .. err)
+            end
+        end
     end
 end
 
