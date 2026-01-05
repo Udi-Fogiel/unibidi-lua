@@ -470,14 +470,14 @@ end
 -- the action
 
 local function get_baselevel(head,list,size,direction)
-    if direction == lefttoright_code or direction == righttoleft_code then
-        return direction, true
-    elseif getid(head) == par_code and startofpar(head) then
+    if getid(head) == par_code and startofpar(head) then
         direction = getdirection(head)
         if direction == lefttoright_code or direction == righttoleft_code then
             return direction, true
         end
     end
+    elseif direction == lefttoright_code or direction == righttoleft_code then
+        return direction, true
     -- P2, P3
     for i=1,size do
         local entry     = list[i]
