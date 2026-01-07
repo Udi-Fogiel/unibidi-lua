@@ -3,7 +3,7 @@
 \_codedecl \unibidilua {Unicode Bidi Algorithm for OpTeX <\_unibidilua_version>}
 
 \_initunifonts
-\_directlua{require('unibidi-lua.lua')}
+\_directlua{require('unibidi-lua')}
 
 \_endcode
 

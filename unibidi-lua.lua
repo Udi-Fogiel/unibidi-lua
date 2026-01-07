@@ -56,7 +56,7 @@ local setmetatable = setmetatable
 local formatters = string.formatters
 
 local characters = characters or { }
-local data       = require("unibidi-lua-data.lua")
+local data       = require("unibidi-lua-data")
 characters.directions  = { }
 
 table.setmetatableindex(characters.directions,function(t,k)
