@@ -381,7 +381,8 @@ local function build_list(head,where)
             current    = getnext(current)
             while current do
                 local id = getid(current)
-                if id ~= glyph_code and id ~= glue_code and id ~= dir_code then
+                if id ~= glyph_code and id ~= glue_code and id ~= dir_code
+                  and id ~= math_code then
                     skip    = skip + 1
                     last    = id
                     current = getnext(current)
@@ -1169,7 +1170,7 @@ local scan_bool = keyval.bool
 local process_keys = keyval.process
 local scan_string = token.scan_string
 local messages = {
-    error1 = "unibidi-lua: wrong syntax in \\unibidi-lua",
+    error1 = "unibidi-lua: wrong syntax in \\unibidilua",
     value_forbidden = "unibidi-lua: the %s key does not accept a value",
     value_rquired = "unibidi-lua: the %s key require a value",
 }
