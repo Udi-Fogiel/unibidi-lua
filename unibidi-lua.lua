@@ -130,6 +130,17 @@ local getfont              = node.direct.getfont
 local todirect = node.direct.todirect
 local tonode = node.direct.tonode
 
+local nodecodes            = { }
+
+local glyph_code           = node.id("glyph")
+local glue_code            = node.id("glue")
+local hlist_code           = node.id("hlist")
+local vlist_code           = node.id("vlist")
+local math_code            = node.id("math")
+local dir_code             = node.id("dir")
+local par_code             = node.id("local_par")
+local penalty_code         = node.id("penalty")
+
 local startofpar           = function(n)
                                  local s = getsubtype(n)
                                  return s == 0 or s == 2 or s == 3
@@ -146,17 +157,6 @@ local new_direction        = function (dir,swap)
                                 end
                                 return t
                              end
-
-local nodecodes            = { }
-
-local glyph_code           = node.id("glyph")
-local glue_code            = node.id("glue")
-local hlist_code           = node.id("hlist")
-local vlist_code           = node.id("vlist")
-local math_code            = node.id("math")
-local dir_code             = node.id("dir")
-local par_code             = node.id("local_par")
-local penalty_code         = node.id("penalty")
 
 local parfillskip_code     = 15
 local parfillleftskip_code = nil -- LuaMeTaTex only
@@ -1162,7 +1162,7 @@ local function balance_math(head)
     if math_balance ~= 0 then
         return false
     end
-    
+    return true
 end
 -- If needed we can optimize for only_one. There is no need to do anything
 -- when it's not a glyph. Otherwise we only need to check mirror and apply
