@@ -120,6 +120,7 @@ local setdirection         = node.direct.setdirection
 
 local properties           = node.direct.get_properties_table()
 
+local new_node             = node.direct.new
 local remove_node          = node.direct.remove
 local insertnodeafter      = node.direct.insert_after
 local insertnodebefore     = node.direct.insert_before
@@ -135,7 +136,7 @@ local startofpar           = function(n)
                              end
 
 local new_direction        = function (dir,swap)
-                                 local t = node.direct.new("dir")
+                                 local t = new_node(dir_code)
                                  if not dir then
                                      -- just a l2r start node
                                  elseif swap then
@@ -1131,7 +1132,38 @@ local function apply_to_list(list,size,head,pardir)
     return head
 end
 
+-- Just in case we check for balanced math nodes, otherwise the current implementation,
+-- which ignores nodes inside math, will have nonsense output.
+-- I'm not sure how a list can have unbalanced math nodes,
+-- but breqn manages to do that.
 
+local function balance_math(head)
+    local current = head
+    local math_balance = 0
+    
+    while current do
+        local id = getid(current)
+        if id == math_code then
+            local subtype = getsubtype(current)
+            if subtype == 0 then  -- begin math
+                math_balance = math_balance + 1
+            else  -- end math
+                math_balance = math_balance - 1
+            end
+            -- If we ever go negative, we have an orphaned end before a begin
+            if math_balance < 0 then
+                return false
+            end
+        end
+        current = getnext(current)
+    end
+    
+    -- If balance is not zero, we have orphaned begin nodes
+    if math_balance ~= 0 then
+        return false
+    end
+    
+end
 -- If needed we can optimize for only_one. There is no need to do anything
 -- when it's not a glyph. Otherwise we only need to check mirror and apply
 -- directions when it's different from the surrounding. Paragraphs always
@@ -1144,7 +1176,7 @@ local baselevel_func = get_baselevel
 
 local function process(head,where,direction)
     head = todirect(head)
-    if not hasglyph(head) then return true end
+    if not (hasglyph(head) and balance_math(head)) then return true end
     local list, size = build_list(head,where)
     local baselevel, dirfound = baselevel_func(head,list,size,direction,where)
     if trace_details then
